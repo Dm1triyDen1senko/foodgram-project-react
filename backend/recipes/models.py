@@ -1,3 +1,188 @@
 from django.db import models
+from colorfield.fields import ColorField
 
-# Create your models here.
+from users.models import CustomUser
+
+
+class Ingredient(models.Model):
+
+    name = models.CharField(
+        max_length=150,
+        verbose_name='Название ингредиента',
+    )
+
+    measurement_unit = models.CharField(
+        max_length=150,
+        verbose_name='Единица измерения',
+    )
+
+    class Meta:
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
+
+    def __str__(self):
+        return self.name
+
+
+class Tag(models.Model):
+
+    name = models.CharField(
+        max_length=150,
+        unique=True,
+        verbose_name='Тег',
+    )
+
+    color = ColorField(
+        max_length=150,
+        unique=True,
+        verbose_name='Цвет тега',
+    )
+
+    slug = models.SlugField(
+        max_length=150,
+        unique=True,
+        verbose_name='Слаг тега',
+    )
+
+    class Meta:
+        verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
+
+    def __str__(self):
+        return self.name
+
+
+class Recipe(models.Model):
+
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        verbose_name='Автор'
+    )
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name='Название рецепта',
+    )
+
+    image = models.ImageField(
+        upload_to='recipes/images',
+        verbose_name='Изображение',
+    )
+
+    text = models.CharField(
+        max_length=150,
+        verbose_name='Описание рецепта',
+    )
+
+    ingredients = models.ManyToManyField(
+        Ingredient,
+        verbose_name='Ингредиенты',
+    )
+
+    tags = models.ManyToManyField(
+        Tag,
+        verbose_name='Теги'
+    )
+
+    cooking_time = models.PositiveIntegerField(
+        null=False,
+        verbose_name='Время приготовления блюда',
+    )
+
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата публикации',
+    )
+
+    class Meta:
+        ordering = ('-pub_date',)
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
+
+    def __str__(self):
+        return self.name
+
+
+class IngredientRecipe(models.Model):
+
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        verbose_name='Рецепт',
+    )
+
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        verbose_name='Ингредиент',
+    )
+
+    amount = models.PositiveIntegerField(
+        null=False,
+        verbose_name='Количество',
+    )
+
+    class Meta:
+        default_related_name = 'ingredientrecipes'
+        verbose_name = 'Ингредиенты для рецепта'
+        verbose_name_plural = 'Ингредиенты для рецепта'
+
+    def __str__(self):
+        return f'{self.ingredient} {self.amount}'
+
+
+class ShoppingList(models.Model):
+
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        verbose_name='Автор',
+    )
+
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        verbose_name='Рецепт',
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'recipe'],
+                name='unique_shopping_list_pair'
+            )
+        ]
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Список покупок'
+
+    def __str__(self):
+        return f'{self.user} добавил: {self.recipe}'
+
+
+class Selected(models.Model):
+
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        verbose_name='Автор рецепта',
+    )
+
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        verbose_name='Рецепт',
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'recipe'],
+                name='unique_selected_pair'
+            )
+        ]
+        verbose_name = 'Отмеченные рецепты'
+        verbose_name_plural = 'Отмеченные рецепты'
+
+    def __str__(self):
+        return self.recipe
