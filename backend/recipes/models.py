@@ -137,12 +137,14 @@ class ShoppingList(models.Model):
     author = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
+        related_name='shopping_cart_author',
         verbose_name='Автор',
     )
 
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
+        related_name='shopping_cart_recipe',
         verbose_name='Рецепт',
     )
 
@@ -153,6 +155,7 @@ class ShoppingList(models.Model):
                 name='unique_shopping_list_pair'
             )
         ]
+        default_related_name = 'shoppinglists'
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Список покупок'
 
