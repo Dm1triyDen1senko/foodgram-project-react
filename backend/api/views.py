@@ -137,27 +137,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeListSerializer
         return AddUpdateDeleteRecipeSerializer
 
-    # def perform_create(self, serializer):
-    #     serializer.save(author=self.request.user)
-
-    # def partial_update(self, request, *args, **kwargs):
-    #     recipe = get_object_or_404(Recipe, id=self.kwargs['pk'])
-    #     if self.request.user == recipe.author:
-    #         return super().partial_update(request)
-    #     else:
-    #         return Response(
-    #             status=status.HTTP_403_FORBIDDEN
-    #         )
-
-    # def destroy(self, request, *args, **kwargs):
-    #     recipe = get_object_or_404(Recipe, id=self.kwargs['pk'])
-    #     if self.request.user == recipe.author:
-    #         return super().destroy(request)
-    #     else:
-    #         return Response(
-    #             status=status.HTTP_403_FORBIDDEN
-    #         )
-
     def create_connection(self, model, user, pk):
         if not Recipe.objects.filter(id=pk).exists():
             return Response(
@@ -208,39 +187,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return self.delete_connection(
             ShoppingList, request.user, pk
         )
-
-    # @action(
-    #     detail=False,
-    #     methods=('get',),
-    #     pagination_class=None,
-    #     url_path='download_shopping_cart',
-    #     permission_classes=(IsAuthenticated,)
-    # )
-    # def download_file(self, request):
-    #     user = request.user
-    #     if not ShoppingList.objects.filter(user_id=user.id).exists():
-    #         return Response(
-    #             'Корзина пуста!', status=status.HTTP_400_BAD_REQUEST)
-    #     ingredients = IngredientRecipe.objects.filter(
-    #         recipe__shopping_cart_recipe__user=user
-    #     ).values(
-    #         'ingredient__name',
-    #         'ingredient__measurement_unit'
-    #     ).annotate(amount=Sum('amount'))
-    #     shopping_list = (
-    #         f'Список покупок для: {user.get_full_name()}\n\n'
-    #     )
-    #     shopping_list += '\n'.join([
-    #         f' - {ingredient["ingredient__name"]} '
-    #         f' {ingredient["ingredient__measurement_unit"]}'
-    #         f' - {ingredient["amount"]}'
-    #         for ingredient in ingredients
-    #     ])
-    #     shopping_list += '\n\nFoodgram'
-    #     filename = f'{user.username}_shopping_cart.txt'
-    #     response = HttpResponse(shopping_list, content_type='text/plain')
-    #     response['Content-Disposition'] = f'attachment; filename={filename}'
-    #     return response
 
     @action(detail=False,
             methods=('get',),
