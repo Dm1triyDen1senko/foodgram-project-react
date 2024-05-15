@@ -1,12 +1,10 @@
 from users.models import CustomUser, Follow
-from rest_framework import status, viewsets, filters
-from rest_framework.decorators import action
+from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated, AllowAny, SAFE_METHODS
 from rest_framework.response import Response
 from .permissions import IsOwnerOrAdminOrReadOnly
 from users.serializers import FollowSerializer, RecipeFollowSerializer
 from rest_framework.decorators import action
-from django_filters.rest_framework import DjangoFilterBackend
 from recipes.models import (
     Ingredient, Tag, Recipe, ShoppingList, Selected
 )
@@ -15,12 +13,8 @@ from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
 from api.filters import RecipeFilter
-from recipes.models import (Selected, Ingredient, Recipe,
-                            ShoppingList, IngredientRecipe)
-from api.permissions import IsOwnerOrAdminOrReadOnly
+from recipes.models import IngredientRecipe
 from recipes.serializers import (
     AddUpdateDeleteRecipeSerializer,
     IngredientSerializer,

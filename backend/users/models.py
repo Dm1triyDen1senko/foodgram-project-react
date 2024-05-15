@@ -6,7 +6,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 class CustomUser(AbstractUser):
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name',]
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name', ]
 
     class UserRole(models.TextChoices):
         USER = 'user'
