@@ -3,7 +3,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: /Users/dmitriy_den/dev/foodgram-project-react/frontend
       dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/

@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "react": "^16.14.0",
+    "react-meta-tags": "^1.0.1"
+  }
+}

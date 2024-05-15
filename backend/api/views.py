@@ -1,28 +1,22 @@
-from users.models import CustomUser, Follow
-from rest_framework import filters
-from rest_framework.permissions import IsAuthenticated, AllowAny, SAFE_METHODS
-from rest_framework.response import Response
-from .permissions import IsOwnerOrAdminOrReadOnly
-from users.serializers import FollowSerializer, RecipeFollowSerializer
-from rest_framework.decorators import action
-from recipes.models import (
-    Ingredient, Tag, Recipe, ShoppingList, Selected
-)
+from api.filters import RecipeFilter
 from django.db.models import Sum
 from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets
-from rest_framework.decorators import action
-from api.filters import RecipeFilter
-from recipes.models import IngredientRecipe
-from recipes.serializers import (
-    AddUpdateDeleteRecipeSerializer,
-    IngredientSerializer,
-    TagSerializer,
-    RecipeListSerializer
-)
 from djoser.views import UserViewSet
-from .import paginations
+from recipes.models import (Ingredient, IngredientRecipe, Recipe, Selected,
+                            ShoppingList, Tag)
+from recipes.serializers import (AddUpdateDeleteRecipeSerializer,
+                                 IngredientSerializer, RecipeListSerializer,
+                                 TagSerializer)
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from users.models import CustomUser, Follow
+from users.serializers import FollowSerializer, RecipeFollowSerializer
+
+from . import paginations
+from .permissions import IsOwnerOrAdminOrReadOnly
 
 
 class CustomUserViewSet(UserViewSet):

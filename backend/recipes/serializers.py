@@ -1,13 +1,11 @@
-from rest_framework import serializers
-from drf_extra_fields.fields import Base64ImageField
-
-from recipes.models import (Ingredient,
-                            Tag, Recipe, IngredientRecipe,
-                            ShoppingList, Selected)
-from users.serializers import CustomUserSerializer
-from rest_framework.exceptions import ValidationError
 import base64
+
 from django.core.files.base import ContentFile
+from recipes.models import (Ingredient, IngredientRecipe, Recipe, Selected,
+                            ShoppingList, Tag)
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from users.serializers import CustomUserSerializer
 
 
 class Base64ImageField(serializers.ImageField):
