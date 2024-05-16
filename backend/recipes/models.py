@@ -1,5 +1,7 @@
 from colorfield.fields import ColorField
+
 from django.db import models
+
 from users.models import CustomUser
 
 
@@ -67,6 +69,8 @@ class Recipe(models.Model):
     image = models.ImageField(
         upload_to='recipes/images',
         verbose_name='Изображение',
+        null=False,
+        blank=False,
     )
 
     text = models.CharField(

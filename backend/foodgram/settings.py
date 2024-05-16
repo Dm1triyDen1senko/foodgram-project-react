@@ -147,8 +147,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 DJOSER = {
     'SERIALIZERS': {
-        'user': 'users.serializers.CustomUserSerializer',
-        'current_user': 'users.serializers.CustomUserSerializer',
+        'user': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
     },
     'PERMISSIONS': {
         'user': ('djoser.permissions.CurrentUserOrAdminOrReadOnly',),
