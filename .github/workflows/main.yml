@@ -36,8 +36,8 @@ jobs:
 
 # Возможны проблемы с копированием .env-файла:
 
-    - name: Copy .env file
-      run: cp .env backend/.env
+    # - name: Copy .env file
+    #   run: cp .env backend/.env
 
     - name: Test with flake8 and django tests
       env:
