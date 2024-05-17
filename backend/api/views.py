@@ -1,7 +1,6 @@
 from dataclasses import asdict, dataclass
 
-from django.db.models import Exists, OuterRef, Sum
-from django.http import HttpResponse
+from django.db.models import Exists, OuterRef
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -9,12 +8,13 @@ from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from djoser.views import UserViewSet
 
-from recipes.models import (Ingredient, IngredientRecipe, Recipe, Selected,
+from recipes.models import (Ingredient, Recipe, Selected,
                             ShoppingList, Tag)
 from users.models import CustomUser, Follow
 from . import paginations, serializers
 from api.filters import RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
+from api.services import get_shopping_list
 
 
 class UserViewSet(UserViewSet):
@@ -143,8 +143,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 ),
             )
             return queryset
-        else:
-            return Recipe.objects.all()
+        return Recipe.objects.select_related('author').all()
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -203,32 +202,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=False,
-            methods=('get',),
-            pagination_class=None,
-            url_path='download_shopping_cart',
-            permission_classes=(IsAuthenticated,),)
-    def download_file(self, request):
-        user = request.user
-        if not ShoppingList.objects.filter(author_id=user.id).exists():
-            return Response(
-                'В корзине нет товаров!', status=status.HTTP_400_BAD_REQUEST)
-        ingredients = IngredientRecipe.objects.filter(
-            recipe__shopping_cart_recipe__author=user
-        ).values(
-            'ingredient__name',
-            'ingredient__measurement_unit'
-        ).annotate(amount=Sum('amount'))
-        shopping_list = (
-            f'Список покупок для: {user.get_full_name()}\n\n'
-        )
-        shopping_list += '\n'.join([
-            f' - {ingredient["ingredient__name"]} '
-            f' {ingredient["ingredient__measurement_unit"]}'
-            f' - {ingredient["amount"]}'
-            for ingredient in ingredients
-        ])
-        shopping_list += '\n\nFoodgram'
-        filename = f'{user.username}_shopping_cart.txt'
-        response = HttpResponse(shopping_list, content_type='text/plain')
-        response['Content-Disposition'] = f'attachment; filename={filename}'
-        return response
+            methods=['get'],
+            permission_classes=[IsAuthenticated])
+    def download_shopping_cart(self, request):
+        author = CustomUser.objects.get(id=self.request.user.pk)
+
+        return get_shopping_list(self, request, author)
