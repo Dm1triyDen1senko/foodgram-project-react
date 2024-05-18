@@ -143,9 +143,6 @@ jobs:
           envkey_DEBUG: ${{ vars.DEBUG }}
           envkey_SECRET_KEY: ${{ secrets.SECRET_KEY }}
           envkey_ALLOWED_HOSTS: ${{ vars.ALLOWED_HOSTS }}
-          envkey_LANGUAGE_CODE: ${{ vars.LANGUAGE_CODE }}
-          envkey_TIMEZONE: ${{ vars.TIME_ZONE }}
-          envkey_USE_SQLITE: ${{ vars.USE_SQLITE }}
           envkey_POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
           envkey_POSTGRES_DB_HOST: ${{ secrets.POSTGRES_DB_HOST }}
           envkey_POSTGRES_DB_PORT: ${{ secrets.POSTGRES_DB_PORT }}
