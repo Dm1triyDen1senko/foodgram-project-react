@@ -1,6 +1,5 @@
 from dataclasses import asdict, dataclass
 
-from django.db.models import Exists, OuterRef
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -130,19 +129,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user and user.is_authenticated:
-            queryset = super().get_queryset().annotate(
-                is_favorited=Exists(
-                    Selected.objects.filter(
-                        recipe_id=OuterRef('pk'), author=user
-                    )
-                ),
-                is_in_shopping_cart=Exists(
-                    ShoppingList.objects.filter(
-                        recipe_id=OuterRef('pk'), author=user
-                    )
-                ),
+            return Recipe.objects.with_annotations(user).select_related(
+                'author'
             )
-            return queryset
         return Recipe.objects.select_related('author').all()
 
     def get_serializer_class(self):

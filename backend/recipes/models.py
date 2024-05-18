@@ -1,6 +1,7 @@
 from colorfield.fields import ColorField
 
 from django.db import models
+from django.db.models import OuterRef, Exists
 
 from users.models import CustomUser
 
@@ -53,7 +54,31 @@ class Tag(models.Model):
         return self.name
 
 
+class RecipeQuerySet(models.QuerySet):
+    def with_annotations(self, user):
+        return self.annotate(
+            is_favorited=Exists(
+                Selected.objects.filter(
+                    recipe_id=OuterRef('pk'), author=user
+                )
+            ),
+            is_in_shopping_cart=Exists(
+                ShoppingList.objects.filter(
+                    recipe_id=OuterRef('pk'), author=user
+                )
+            ),
+        )
+
+
+class RecipeManager(models.Manager):
+
+    def get_queryset(self):
+        return RecipeQuerySet(self.model, using=self._db)
+
+
 class Recipe(models.Model):
+
+    objects = RecipeQuerySet.as_manager()
 
     author = models.ForeignKey(
         CustomUser,
@@ -102,6 +127,9 @@ class Recipe(models.Model):
         ordering = ('-pub_date',)
         verbose_name = 'Рецепт'
         verbose_name_plural = 'Рецепты'
+
+    def get_queryset(self):
+        return Recipe.objects.all()
 
     def __str__(self):
         return self.name
