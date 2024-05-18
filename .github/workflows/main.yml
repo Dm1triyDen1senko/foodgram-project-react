@@ -1,9 +1,9 @@
-name: Main Foodgram Workflow
+name: Foodgram workflow
 
 on: push
 
 jobs:
-  tests:
+  python_tests:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -14,56 +14,58 @@ jobs:
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Check out repository
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8==6.0.0
-          pip install -r backend/requirements.txt
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip 
+        pip install flake8==6.0.0
+        pip install -r ./backend/requirements.txt
 
-      - name: Test with flake8 and django tests
-        env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-        run: |
-          python -m flake8 backend/
-          cd backend/
-          python manage.py test
+# Возможны проблемы с копированием .env-файла:
+
+    - name: Copy .env file
+      run: cp .env backend/.env
+
+    - name: Test with flake8 and django tests
+      env:
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        DB_HOST: 127.0.0.1
+        DB_PORT: 5432
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      run: |
+        python -m flake8 backend/
+        cd backend/
+        python manage.py test
 
   build_and_push_to_docker_hub:
-    name: Push Docker image to DockerHub
+    name: Push Docker-backend image to DockerHub
     runs-on: ubuntu-latest
+    needs: python_tests
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    needs: tests
     steps:
-      - name: Checkout repository
+      - name: Check out the repository
         uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Login to DockerHub
+      - name: Login to Docker
         uses: docker/login-action@v1
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+            username: ${{ secrets.DOCKER_USERNAME }}
+            password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Push to DockerHub
         uses: docker/build-push-action@v2
@@ -102,21 +104,34 @@ jobs:
       - build_and_push_to_docker_hub
       - build_frontend_and_push_to_docker_hub
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Copy docker-compose.yml via SSH
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: "docker-compose.production.yml"
-          target: "foodgram"
-          strip_components: 1
+# Возможны проблемы с копирование nginx.conf-файла:
 
-      - name: Execute remote SSH commands to deploy
+      # - name: Copy nginx.conf via ssh
+      #   uses: appleboy/scp-action@master
+      #   with:
+      #     host: ${{ secrets.HOST }}
+      #     username: ${{ secrets.USER }}
+      #     key: ${{ secrets.SSH_KEY }}
+      #     passphrase: ${{ secrets.SSH_PASSPHRASE }}
+      #     source: "infra/nginx.conf"
+      #     target: "foodgram"
+      #     strip_components: 1
+
+      # - name: Copy docker-compose.production.yml via ssh
+      #   uses: appleboy/scp-action@master
+      #   with:
+      #     host: ${{ secrets.HOST }}
+      #     username: ${{ secrets.USER }}
+      #     key: ${{ secrets.SSH_KEY }}
+      #     passphrase: ${{ secrets.SSH_PASSPHRASE }}
+      #     source: "infra/docker-compose.production.yml"
+      #     target: "foodgram"
+      #     strip_components: 1
+
+      - name: Execute remote ssh commands to deploy
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
@@ -125,12 +140,12 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd foodgram
-            sudo docker-compose -f docker-compose.production.yml pull
-            sudo docker-compose -f docker-compose.production.yml down
-            sudo docker-compose -f docker-compose.production.yml up -d
-            sudo docker-compose -f docker-compose.production.yml exec backend python manage.py migrate
-            sudo docker-compose -f docker-compose.production.yml exec backend python manage.py collectstatic
-            sudo docker-compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
+            sudo docker compose -f docker-compose.production.yml pull
+            sudo docker compose -f docker-compose.production.yml down
+            sudo docker compose -f docker-compose.production.yml up -d
+            sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
+            sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
+            sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
 
   send_message:
     runs-on: ubuntu-latest
