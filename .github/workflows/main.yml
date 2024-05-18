@@ -5,25 +5,28 @@ on: push
 jobs:
   python_tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9"]
     services:
       postgres:
         image: postgres:13.10
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: django_user
+          POSTGRES_PASSWORD: django_password
+          POSTGRES_DB: django_db
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-    - name: Check out repository
+    - name: Check out code
       uses: actions/checkout@v3
 
-    - name: Set up Python
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
-        python-version: 3.9
+        python-version: ${{ matrix.python-version }}
 
     - name: Install dependencies
       run: |
@@ -31,72 +34,95 @@ jobs:
         pip install flake8==6.0.0
         pip install -r ./backend/requirements.txt
 
-# Возможны проблемы с копированием .env-файла:
-
     - name: Copy .env file
-      run: cp .env backend/.env
+      run: cp .env.example backend/.env
 
     - name: Test with flake8 and django tests
       env:
-        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: django_user
+        POSTGRES_PASSWORD: django_password
+        POSTGRES_DB: django_db
         DB_HOST: 127.0.0.1
         DB_PORT: 5432
-        SECRET_KEY: ${{ secrets.SECRET_KEY }}
       run: |
         python -m flake8 backend/
         cd backend/
         python manage.py test
 
   build_and_push_to_docker_hub:
-    name: Push Docker-backend image to DockerHub
+    name: Push backend Docker image to DockerHub
     runs-on: ubuntu-latest
     needs: python_tests
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     steps:
-      - name: Check out the repository
+      - name: Check out the repo
         uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to Docker
-        uses: docker/login-action@v1
-        with:
-            username: ${{ secrets.DOCKER_USERNAME }}
-            password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Push to DockerHub
-        uses: docker/build-push-action@v2
-        with:
-          context: ./backend/
-          push: true
-          tags: dm1triyden1senko/foodgram_backend:latest
-
-  build_frontend_and_push_to_docker_hub:
-    name: Push frontend Docker image to DockerHub
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Push to DockerHub
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend/
+          push: true
+          tags: ${{ vars.DOCKER_USERNAME }}/${{ vars.PROJECT_NAME }}_backend:latest
+
+      - name: Send message if build failed
+        if: ${{ failure() }}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          disable_web_page_preview: true
+          format: html
+          message: |
+            Error on build <b>BACKEND</b>on repository: ${{ github.repository }}
+            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">Click here for more information</a>
+  
+
+  build_frontend_and_push_to_docker_hub:
+    name: Push frontend Docker image to DockerHub
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker
+        uses: docker/login-action@v2
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push to DockerHub
+        uses: docker/build-push-action@v4
         with:
           context: ./frontend/
           push: true
-          tags: dm1triyden1senko/foodgram_frontend:latest
+          tags: ${{ vars.DOCKER_USERNAME }}/${{ vars.PROJECT_NAME }}_frontend:latest
+
+      - name: Send message if build failed
+        if: ${{ failure() }}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          disable_web_page_preview: true
+          format: html
+          message: |
+            Error on build <b>FRONTEND</b> on repository: ${{ github.repository }}
+            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">Click here for more information</a>
 
   deploy:
     runs-on: ubuntu-latest
@@ -107,45 +133,55 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-# Возможны проблемы с копирование nginx.conf-файла:
-
-      # - name: Copy nginx.conf via ssh
-      #   uses: appleboy/scp-action@master
-      #   with:
-      #     host: ${{ secrets.HOST }}
-      #     username: ${{ secrets.USER }}
-      #     key: ${{ secrets.SSH_KEY }}
-      #     passphrase: ${{ secrets.SSH_PASSPHRASE }}
-      #     source: "infra/nginx.conf"
-      #     target: "foodgram"
-      #     strip_components: 1
-
-      # - name: Copy docker-compose.production.yml via ssh
-      #   uses: appleboy/scp-action@master
-      #   with:
-      #     host: ${{ secrets.HOST }}
-      #     username: ${{ secrets.USER }}
-      #     key: ${{ secrets.SSH_KEY }}
-      #     passphrase: ${{ secrets.SSH_PASSPHRASE }}
-      #     source: "infra/docker-compose.production.yml"
-      #     target: "foodgram"
-      #     strip_components: 1
-
-      - name: Execute remote ssh commands to deploy
-        uses: appleboy/ssh-action@master
+      - name: Copy nginx.conf via ssh
+        uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          source: "infra/nginx.conf"
+          target: "${{ vars.PROJECT_NAME }}"
+          strip_components: 1
+
+      - name: Copy docker-compose.production.yml via ssh
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          source: "infra/docker-compose.production.yml"
+          target: "${{ vars.PROJECT_NAME }}"
+          strip_components: 1
+
+      - name: Execute remote ssh commands to deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd foodgram
+            cd ${{ vars.PROJECT_NAME }}
             sudo docker compose -f docker-compose.production.yml pull
             sudo docker compose -f docker-compose.production.yml down
             sudo docker compose -f docker-compose.production.yml up -d
             sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
             sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
             sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
+
+      - name: Send message if deploy failed
+        if: ${{ failure() }}
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          disable_web_page_preview: true
+          format: html
+          message: |
+            Error when try to deploy <code>${{ vars.PROJECT_NAME }}</code> on repository: ${{ github.repository }}
+            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">Click here for more information</a>
 
   send_message:
     runs-on: ubuntu-latest
@@ -156,4 +192,11 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: "Deployment successful!"
+          disable_web_page_preview: true
+          format: html
+          message: |
+            <a href="https://github.com/${{ github.actor }}"><b>${{ github.actor }}</b></a> created commit:
+            Repository: <a href="https://github.com/${{ github.repository }}">${{ github.repository }}</a>
+            Commit message: <i>${{ github.event.commits[0].message }}</i>
+            See changes: <a href="https://github.com/${{ github.repository }}/commit/${{github.sha}}"><b>HERE</b></a>
+            Project <code>${{ vars.PROJECT_NAME }}</code> successfully deployed to remote server.
