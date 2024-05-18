@@ -3,7 +3,7 @@ name: Foodgram workflow
 on: push
 
 jobs:
-  tests:
+  pytho_tests:
     runs-on: ubuntu-latest
     services:
       postgres:
