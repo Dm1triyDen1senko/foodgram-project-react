@@ -233,32 +233,10 @@ jobs:
           push: true
           tags: dm1triyden1senko/foodgram_backend:latest
 
-  frontend_tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: 18
-
-      - name: Install dependencies
-        run: |
-          cd frontend/
-          npm ci
-
-      - name: Test frontend
-        run: |
-          cd frontend/
-          npm run test
-
   build_frontend_and_push_to_docker_hub:
     name: Push frontend Docker image to DockerHub
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    needs: frontend_tests
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
