@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9"]
+        python-version: ["3.8", "3.9", "3.10"]
     services:
       postgres:
         image: postgres:13.10
@@ -64,7 +64,7 @@ jobs:
       - name: Login to Docker
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Push to DockerHub
@@ -133,11 +133,52 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      - name: Make project folder
+        run: |
+          mkdir ${{ vars.PROJECT_NAME }}
+
+      # - name: Make .env file via create-envfile by SpicyPizza
+      #   uses: SpicyPizza/create-envfile@v2.0.3
+      #   with:
+      #     envkey_DEBUG: ${{ vars.DEBUG }}
+      #     envkey_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      #     envkey_ALLOWED_HOSTS: ${{ vars.ALLOWED_HOSTS }}
+      #     envkey_LANGUAGE_CODE: ${{ vars.LANGUAGE_CODE }}
+      #     envkey_TIMEZONE: ${{ vars.TIME_ZONE }}
+      #     envkey_USE_SQLITE: ${{ vars.USE_SQLITE }}
+      #     envkey_POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      #     envkey_POSTGRES_DB_HOST: ${{ secrets.POSTGRES_DB_HOST }}
+      #     envkey_POSTGRES_DB_PORT: ${{ secrets.POSTGRES_DB_PORT }}
+      #     envkey_POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      #     envkey_POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      #     fail_on_empty: true
+      #     sort_keys: false
+
+      - name: Copy .env via ssh's scp
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          source: ".env"
+          target: "${{ vars.PROJECT_NAME }}"
+
+      - name: Copy docs(Redock) via ssh
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          source: "docs/"
+          target: "${{ vars.PROJECT_NAME }}"
+
       - name: Copy nginx.conf via ssh
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "infra/nginx.conf"
@@ -147,8 +188,8 @@ jobs:
       - name: Copy docker-compose.production.yml via ssh
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "infra/docker-compose.production.yml"
