@@ -87,7 +87,7 @@ class SelectedSerializer(serializers.ModelSerializer):
         source='recipe.image',
         read_only=True
     )
-    coocking_time = serializers.IntegerField(
+    cooking_time = serializers.IntegerField(
         source='recipe.cooking_time',
         read_only=True
     )

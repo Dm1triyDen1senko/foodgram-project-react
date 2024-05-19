@@ -10,10 +10,10 @@ from djoser.views import UserViewSet
 from recipes.models import (Ingredient, Recipe, Selected,
                             ShoppingList, Tag)
 from users.models import CustomUser, Follow
-from . import paginations, serializers
 from api.filters import RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
 from api.services import get_shopping_list
+from . import paginations, serializers
 
 
 class UserViewSet(UserViewSet):
@@ -41,10 +41,7 @@ class UserViewSet(UserViewSet):
             return serializers.FollowSerializer
         return super().get_serializer_class()
 
-    @action(
-        detail=True, methods=('POST', 'DELETE'),
-        pagination_class=None,
-    )
+    @action(detail=True, methods=('post',), pagination_class=None)
     def subscribe(self, request, id):
         if not CustomUser.objects.filter(pk=id).exists():
             return Response(
@@ -55,37 +52,47 @@ class UserViewSet(UserViewSet):
         user = request.user
 
         if not user.is_authenticated:
-            return Response(
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        if request.method == 'POST':
-            if user == author:
-                return Response(
-                    {'errors': self.error_messages['SUBSCRIBE_SELF']},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if Follow.objects.filter(
-                user=user, author=author
-            ).exists():
-                return Response(
-                    {'errors': self.error_messages['ALREADY_SUBSCRIBED']},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            Follow.objects.create(user=user, author=author)
-            serializer = serializers.FollowSerializer(
-                author, context=dict(request=request)
+        if user == author:
+            return Response(
+                {'errors': self.error_messages['SUBSCRIBE_SELF']},
+                status=status.HTTP_400_BAD_REQUEST
             )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        if request.method == 'DELETE':
-            connection = Follow.objects.filter(user=user, author=author)
-            if connection.exists():
-                connection.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+        if Follow.objects.filter(user=user, author=author).exists():
             return Response(
                 {'errors': self.error_messages['ALREADY_SUBSCRIBED']},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        Follow.objects.create(user=user, author=author)
+        serializer = serializers.FollowSerializer(
+            author, context={'request': request}
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @subscribe.mapping.delete
+    def unsubscribe(self, request, id):
+        if not CustomUser.objects.filter(pk=id).exists():
+            return Response(
+                {'errors': self.error_messages['USER_NOT_FOUND']},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        author = CustomUser.objects.get(pk=id)
+        user = request.user
+
+        if not user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        connection = Follow.objects.filter(user=user, author=author)
+        if connection.exists():
+            connection.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response(
+            {'errors': self.error_messages['ALREADY_SUBSCRIBED']},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     @action(
         detail=False, methods=('GET',),
@@ -132,7 +139,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Recipe.objects.with_annotations(user).select_related(
                 'author'
             )
-        return Recipe.objects.select_related('author').all()
+        return Recipe.objects.select_related('author').prefetch_related('tags')
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
