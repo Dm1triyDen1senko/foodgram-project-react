@@ -5,9 +5,6 @@ on: push
 jobs:
   python_tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10"]
     services:
       postgres:
         image: postgres:13.10
@@ -74,19 +71,6 @@ jobs:
           push: true
           tags: ${{ vars.DOCKER_USERNAME }}/${{ vars.PROJECT_NAME }}_backend:latest
 
-      - name: Send message if build failed
-        if: ${{ failure() }}
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          disable_web_page_preview: true
-          format: html
-          message: |
-            Error on build <b>BACKEND</b>on repository: ${{ github.repository }}
-            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">Click here for more information</a>
-  
-
   build_frontend_and_push_to_docker_hub:
     name: Push frontend Docker image to DockerHub
     runs-on: ubuntu-latest
@@ -111,18 +95,6 @@ jobs:
           context: ./frontend/
           push: true
           tags: ${{ vars.DOCKER_USERNAME }}/${{ vars.PROJECT_NAME }}_frontend:latest
-
-      - name: Send message if build failed
-        if: ${{ failure() }}
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          disable_web_page_preview: true
-          format: html
-          message: |
-            Error on build <b>FRONTEND</b> on repository: ${{ github.repository }}
-            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">Click here for more information</a>
 
   deploy:
     runs-on: ubuntu-latest
@@ -208,18 +180,6 @@ jobs:
             sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
             sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
             sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
-
-      - name: Send message if deploy failed
-        if: ${{ failure() }}
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          disable_web_page_preview: true
-          format: html
-          message: |
-            Error when try to deploy <code>${{ vars.PROJECT_NAME }}</code> on repository: ${{ github.repository }}
-            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">Click here for more information</a>
 
   send_message:
     runs-on: ubuntu-latest

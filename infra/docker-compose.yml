@@ -12,7 +12,7 @@ services:
     ports:
       - "80:80"
     extra_hosts:
-      - "host.docker.internal:host-gateway" # Было на вебинаре
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
