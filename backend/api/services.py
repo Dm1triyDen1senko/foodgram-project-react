@@ -1,6 +1,6 @@
 import io
 
-from django.http import HttpResponse
+from django.http import FileResponse
 from django.db.models import Sum
 
 from recipes.models import IngredientRecipe
@@ -23,6 +23,11 @@ def get_shopping_list(self, request, author) -> io.BytesIO:
             f'{ingredient["ingredient__measurement_unit"]}\n'
         )
     filename = 'shopping_list.txt'
-    response = HttpResponse(shopping_list, content_type='text/plain')
+    response = FileResponse(
+        shopping_list,
+        as_attachment=True,
+        filename=filename,
+        content_type='text/plain'
+    )
     response['Content-Disposition'] = f'attachment; filename={filename}'
     return response
