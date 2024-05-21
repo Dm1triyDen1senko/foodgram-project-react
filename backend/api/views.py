@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass
 
+from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -10,10 +11,10 @@ from djoser.views import UserViewSet
 from recipes.models import (Ingredient, Recipe, Selected,
                             ShoppingList, Tag)
 from users.models import CustomUser, Follow
-from api.filters import RecipeFilter
+from api.filters import RecipeFilter, IngredientSearchFilter
 from api.permissions import IsAuthorOrReadOnly
 from api.services import get_shopping_list
-from . import paginations, serializers
+from . import paginations, serializers, filters
 
 
 class UserViewSet(UserViewSet):
@@ -119,9 +120,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = serializers.IngredientSerializer
     permission_classes = (AllowAny, )
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    filterset_fields = ('name',)
-    search_fields = ('name',)
+    filter_backends = (filters.IngredientSearchFilter,)
+    search_fields = ('^name',)
     pagination_class = None
 
 
@@ -203,3 +203,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         author = CustomUser.objects.get(id=self.request.user.pk)
 
         return get_shopping_list(self, request, author)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)

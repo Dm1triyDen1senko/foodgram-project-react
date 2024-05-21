@@ -213,27 +213,27 @@ class AddUpdateDeleteRecipeSerializer(serializers.ModelSerializer):
         image = data.get('image')
         if not image:
             raise serializers.ValidationError(
-                {'Добавьте изображение!'}
+                'Добавьте изображение!'
             )
         if cooking_time == 0:
             raise serializers.ValidationError(
-                {'Время приготовления не может быть меньше 1!'}
+                'Время приготовления не может быть меньше 1!'
             )
         if ingredients is None or len(ingredients) <= 0:
             raise serializers.ValidationError(
-                {'В рецепте нет ингридентов!'}
+                'В рецепте нет ингридентов!'
             )
         if tags is None or len(tags) <= 0:
             raise serializers.ValidationError(
-                {'В рецепте нет тегов!'}
+                'В рецепте нет тегов!'
             )
         if len(tags) != len(set(tags)):
             raise serializers.ValidationError(
-                {'Теги не должны повторяться!'}
+                'Теги не должны повторяться!'
             )
         if len(ingredients) != len(set([item['id'] for item in ingredients])):
             raise serializers.ValidationError(
-                {'Ингредиенты не должны повторяться!'}
+                'Ингредиенты не должны повторяться!'
             )
         for ingredient in ingredients:
             if len(ingredient) > 0:
@@ -242,7 +242,7 @@ class AddUpdateDeleteRecipeSerializer(serializers.ModelSerializer):
                 )
                 if not is_ingredient:
                     raise serializers.ValidationError(
-                        {'Такого ингредиента не существует!'}
+                        'Такого ингредиента не существует!'
                     )
         return data
 
