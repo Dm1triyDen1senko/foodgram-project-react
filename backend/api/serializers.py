@@ -1,6 +1,5 @@
 from django.db import transaction
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from djoser.serializers import UserSerializer as DjoserUserSerializer
 from drf_extra_fields.fields import Base64ImageField
 
@@ -267,19 +266,11 @@ class AddUpdateDeleteRecipeSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, recipe, validate_data):
         ingredients = validate_data.pop('ingredients')
-        tags = validate_data.pop('tags')
-        if not ingredients or not tags:
-            return ValidationError(
-                {'В рецепте обязательно должен быть тег и ингредиент.'}
-            )
-        recipe = super().update(recipe, validate_data)
         recipe.tags.clear()
         recipe.ingredients.clear()
-        recipe.tags.set(tags)
         self.create_ingredients(recipe=recipe,
                                 ingredients=ingredients)
-        recipe.save()
-        return recipe
+        return super().update(recipe, validate_data)
 
     def to_representation(self, instance):
         request = self.context.get('request')
