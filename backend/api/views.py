@@ -1,6 +1,5 @@
 from dataclasses import asdict, dataclass
 
-from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -14,7 +13,7 @@ from users.models import CustomUser, Follow
 from api.filters import RecipeFilter, IngredientSearchFilter
 from api.permissions import IsAuthorOrReadOnly
 from api.services import get_shopping_list
-from . import paginations, serializers, filters
+from . import paginations, serializers
 
 
 class UserViewSet(UserViewSet):
@@ -120,7 +119,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = serializers.IngredientSerializer
     permission_classes = (AllowAny, )
-    filter_backends = (filters.IngredientSearchFilter,)
+    filter_backends = (IngredientSearchFilter,)
     search_fields = ('^name',)
     pagination_class = None
 
