@@ -2,8 +2,8 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from djoser.serializers import UserSerializer as DjoserUserSerializer
-from .fields import Base64ImageField
 
+from .fields import Base64ImageField
 from recipes.models import (Ingredient, IngredientRecipe, Recipe, Selected,
                             ShoppingList, Tag)
 from users.models import CustomUser, Follow
@@ -139,7 +139,10 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class IngredientRecipeSerializer(serializers.ModelSerializer):
-    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all(),
+        source='ingredient'
+    )
     name = serializers.ReadOnlyField(
         source='ingredient.name'
     )
@@ -171,7 +174,7 @@ class RecipeListSerializer(serializers.ModelSerializer):
                   'name', 'image', 'text', 'cooking_time')
 
 
-class AddUpdateDeleteRecipeSerializer(serializers.ModelSerializer):
+class CreateUpdateRecipeSerializer(serializers.ModelSerializer):
     ingredients = IngredientRecipeSerializer(many=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(),
@@ -191,15 +194,15 @@ class AddUpdateDeleteRecipeSerializer(serializers.ModelSerializer):
         ingredients = data.get('ingredients')
         if not ingredients:
             raise ValidationError(
-                dict(ingredients='Должен быть хотя бы 1 ингредиент.')
+                dict(ingredients='Должен быть хотя бы 1 ингредиент!')
             )
         if not tags:
-            raise ValidationError(dict(tags='Должен быть хотя бы 1 тег.'))
+            raise ValidationError(dict(tags='Должен быть хотя бы 1 тег!'))
         if len(tags) != len(set(tags)):
-            raise ValidationError('Дублирование в тэгах недопустимо.')
-        ingredients_ids = [ingredient['id'] for ingredient in ingredients]
+            raise ValidationError('Дублирование в тэгах недопустимо!')
+        ingredients_ids = [i['ingredient'].id for i in ingredients]
         if len(ingredients_ids) != len(set(ingredients_ids)):
-            raise ValidationError('Ингредиенты не должны повторяться')
+            raise ValidationError('Ингредиенты не должны повторяться!')
         return super().validate(data)
 
     @transaction.atomic
@@ -207,7 +210,7 @@ class AddUpdateDeleteRecipeSerializer(serializers.ModelSerializer):
         IngredientRecipe.objects.bulk_create([
             IngredientRecipe(
                 recipe=recipe,
-                ingredient=ingredient['id'],
+                ingredient=ingredient['ingredient'],
                 amount=ingredient['amount']
             ) for ingredient in ingredients])
 
