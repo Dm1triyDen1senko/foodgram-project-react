@@ -144,6 +144,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return serializers.RecipeListSerializer
         return serializers.AddUpdateDeleteRecipeSerializer
 
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
     def create_connection(self, model, user, pk):
         if not Recipe.objects.filter(id=pk).exists():
             return Response(

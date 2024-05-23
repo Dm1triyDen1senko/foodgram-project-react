@@ -1,7 +1,8 @@
 from colorfield.fields import ColorField
 
 from django.db import models
-from django.db.models import OuterRef, Exists
+from django.db.models import OuterRef, Exists, constraints
+from django.core.validators import MinValueValidator
 
 from users.models import CustomUser
 
@@ -76,6 +77,46 @@ class RecipeManager(models.Manager):
         return RecipeQuerySet(self.model, using=self._db)
 
 
+class IngredientRecipe(models.Model):
+
+    recipe = models.ForeignKey(
+        'Recipe',
+        on_delete=models.CASCADE,
+        verbose_name='Рецепт',
+    )
+
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        verbose_name='Ингредиент',
+    )
+
+    amount = models.PositiveSmallIntegerField(
+        null=False,
+        verbose_name='Количество',
+        validators=(
+            MinValueValidator(
+                1,
+                'Кол-во ингредиента не может быть меньше 1!'
+            ),
+        )
+    )
+
+    class Meta:
+        default_related_name = 'ingredientrecipes'
+        verbose_name = 'Ингредиенты для рецепта'
+        verbose_name_plural = 'Ингредиенты для рецепта'
+        constraints = [
+            constraints.UniqueConstraint(
+                fields=('ingredient', 'recipe'),
+                name='UniqueIngredientRecipe'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.ingredient} {self.amount}'
+
+
 class Recipe(models.Model):
 
     objects = RecipeQuerySet.as_manager()
@@ -94,8 +135,6 @@ class Recipe(models.Model):
     image = models.ImageField(
         upload_to='recipes/images',
         verbose_name='Изображение',
-        null=False,
-        blank=False,
     )
 
     text = models.CharField(
@@ -105,6 +144,7 @@ class Recipe(models.Model):
 
     ingredients = models.ManyToManyField(
         Ingredient,
+        through=IngredientRecipe,
         verbose_name='Ингредиенты',
     )
 
@@ -116,6 +156,12 @@ class Recipe(models.Model):
     cooking_time = models.PositiveIntegerField(
         null=False,
         verbose_name='Время приготовления блюда',
+        validators=(
+            MinValueValidator(
+                1,
+                'Время приготовления не может быть меньше 1!'
+            ),
+        )
     )
 
     pub_date = models.DateTimeField(
@@ -133,34 +179,6 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class IngredientRecipe(models.Model):
-
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        verbose_name='Рецепт',
-    )
-
-    ingredient = models.ForeignKey(
-        Ingredient,
-        on_delete=models.CASCADE,
-        verbose_name='Ингредиент',
-    )
-
-    amount = models.PositiveIntegerField(
-        null=False,
-        verbose_name='Количество',
-    )
-
-    class Meta:
-        default_related_name = 'ingredientrecipes'
-        verbose_name = 'Ингредиенты для рецепта'
-        verbose_name_plural = 'Ингредиенты для рецепта'
-
-    def __str__(self):
-        return f'{self.ingredient} {self.amount}'
 
 
 class ShoppingList(models.Model):
