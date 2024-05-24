@@ -31,9 +31,6 @@ class RecipeFilter(FilterSet):
         return queryset
 
     def in_cart(self, queryset, name, value):
-        if value is not None and self.request.user.is_authenticated:
-            shopping_list = models.ShoppingList.objects.get(
-                author=self.request.user
-            )
-            return queryset.filter(shopping_cart_recipe=shopping_list)
+        if value and not self.request.user.is_anonymous:
+            return queryset.filter(author=self.request.user)
         return queryset
