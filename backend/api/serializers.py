@@ -4,7 +4,7 @@ from rest_framework.exceptions import ValidationError
 from djoser.serializers import UserSerializer as DjoserUserSerializer
 
 from .fields import Base64ImageField
-from recipes.models import (Ingredient, IngredientRecipe, Recipe, Selected,
+from recipes.models import (Ingredient, IngredientRecipe, Recipe, Favorites,
                             ShoppingList, Tag)
 from users.models import CustomUser, Follow
 
@@ -78,7 +78,7 @@ class FollowSerializer(serializers.ModelSerializer):
         return Recipe.objects.filter(author=obj.id).count()
 
 
-class SelectedSerializer(serializers.ModelSerializer):
+class FavoritesSerializer(serializers.ModelSerializer):
     name = serializers.ReadOnlyField(
         source='recipe.name',
         read_only=True
@@ -97,7 +97,7 @@ class SelectedSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Selected
+        model = Favorites
         fields = ('id', 'name', 'image', 'coocking_time')
 
 

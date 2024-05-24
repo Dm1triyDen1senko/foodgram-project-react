@@ -59,7 +59,7 @@ class RecipeQuerySet(models.QuerySet):
     def with_annotations(self, user):
         return self.annotate(
             is_favorited=Exists(
-                Selected.objects.filter(
+                Favorites.objects.filter(
                     recipe_id=OuterRef('pk'), author=user
                 )
             ),
@@ -212,7 +212,7 @@ class ShoppingList(models.Model):
         return f'{self.user} добавил: {self.recipe}'
 
 
-class Selected(models.Model):
+class Favorites(models.Model):
 
     author = models.ForeignKey(
         CustomUser,

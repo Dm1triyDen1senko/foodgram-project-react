@@ -1,5 +1,3 @@
-from dataclasses import asdict, dataclass
-
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -7,7 +5,7 @@ from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from djoser.views import UserViewSet
 
-from recipes.models import (Ingredient, Recipe, Selected,
+from recipes.models import (Ingredient, Recipe, Favorites,
                             ShoppingList, Tag)
 from users.models import CustomUser, Follow
 from api.filters import RecipeFilter, IngredientSearchFilter
@@ -17,14 +15,12 @@ from . import paginations, serializers
 
 
 class UserViewSet(UserViewSet):
-    @dataclass
-    class ErrorMessages:
-        USER_NOT_FOUND: str = 'Такого пользователя не существует!'
-        UNAUTHORIZED: str = 'Необходимо авторизоваться!'
-        SUBSCRIBE_SELF: str = 'Невозможно подписаться на самого себя!'
-        ALREADY_SUBSCRIBED: str = 'Вы уже подписаны на этого пользователя!'
-
-    error_messages = asdict(ErrorMessages())
+    error_messages = {
+        'USER_NOT_FOUND': 'Такого пользователя не существует!',
+        'UNAUTHORIZED': 'Необходимо авторизоваться!',
+        'SUBSCRIBE_SELF': 'Невозможно подписаться на самого себя!',
+        'ALREADY_SUBSCRIBED': 'Вы уже подписаны на этого пользователя!'
+    }
 
     permission_classes = (AllowAny,)
     pagination_class = paginations.LimitPageNumberPagination
@@ -182,10 +178,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def favorite(self, request, pk=None):
         if request.method == 'POST':
             return self.create_connection(
-                Selected, request.user, pk
+                Favorites, request.user, pk
             )
         return self.delete_connection(
-            Selected, request.user, pk
+            Favorites, request.user, pk
         )
 
     @action(detail=True, methods=('POST', 'DELETE'),)
