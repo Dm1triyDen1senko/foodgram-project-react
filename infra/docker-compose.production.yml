@@ -21,6 +21,8 @@ services:
       - media:/app/media
     depends_on:
       - db
+    ports:
+      - "8000:8000"
     restart: always
 
   frontend:
