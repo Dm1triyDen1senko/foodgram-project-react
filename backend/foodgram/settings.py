@@ -37,7 +37,7 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 # allowed_hosts_str = os.getenv('ALLOWED_HOSTS', '')
 # ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.strip()]
 
-ALLOWED_HOSTS = ['213.171.29.95,127.0.0.1,localhost,f00dgr4m.hopto.org']
+ALLOWED_HOSTS = ['213.171.29.95,127.0.0.1,localhost,f00dgr4m.zapto.org']
 
 # Application definition
 
